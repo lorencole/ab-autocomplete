@@ -27,7 +27,7 @@ readFiles(libraryFiles)
 function autocomplete(fragment, library) {
   // grep with word boundaries
   let matchResults = search(fragment, library);
-  let results = getTopResults(matchResults);
+  let results = getTopResults(matchResults, 25);
   return results;
 }
 
@@ -80,9 +80,6 @@ function search(fragment, library) {
 
 // returns the top num most frequent results
 function getTopResults(results, num) {
-  if(num === 'undefined') {
-    num = 25;
-  }
   let keys = Object.keys(results);
   // sort desc by occurances
   keys.sort(function(a, b) {
