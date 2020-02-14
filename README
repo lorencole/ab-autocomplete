@@ -11,7 +11,7 @@ RUN TESTS:
 $> npm test
 
 KNOWN ISSUES
-
+Stripping all non-alphabetic characters has some unintended consequences as can be seen in the results for "\'d". Many writers use contractions and this app does not include results for those.
 
 PROSPECTIVE IMPROVEMENTS
 1) Unicode support - We're ready the files with UTF8, so unicode characters are included in our library, but our regex parser doesn't include unicode characters in [a-z], so the sanitizer is stripping them all out. Javascript regex does support unicode, https://javascript.info/regexp-unicode. If I had more time I'd muck about with the 'u' flag and Letter property to add support for this.
