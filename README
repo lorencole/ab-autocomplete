@@ -1,0 +1,66 @@
+INSTALL:
+$> git clone https://github.com/lorencole/ab-autocomplete.git
+$> npm install
+
+Requires node v12 or better for str.matchAll() support. You can download and install directly from node https://nodejs.org/en/download/ or via nvm https://github.com/nvm-sh/nvm
+
+RUN:
+$> node index.js [fragment] [filepath1 filepath2 ...]
+
+RUN TESTS:
+$> npm test
+
+KNOWN ISSUES
+
+
+PROSPECTIVE IMPROVEMENTS
+1) Unicode support - We're ready the files with UTF8, so unicode characters are included in our library, but our regex parser doesn't include unicode characters in [a-z], so the sanitizer is stripping them all out. Javascript regex does support unicode, https://javascript.info/regexp-unicode. If I had more time I'd muck about with the 'u' flag and Letter property to add support for this.
+
+2) Performance improvements - Searching the source files for each auto-complete job is poorly performant with large files. Ideally we'd be able to analyze the files and store the results in a compressed and persistent manner for use with multiple fragments.
+
+If this were more than an exercise I'd go to our stakeholders and ask how the autocomplete tool fits into the application as a whole and how often the source files change, hoping to discover that the source files don't change often, and when they do the change consists of new content has been appended to them.
+
+In that case I'd work to change the requirements to allow for persistent storage of an autocomplete trie with some additional calls to allow data to be added to the source library. See option 3) below for pseudocode and references explaining treis.
+
+If the source files actually change for each autocomplete request then I'd be open to suggestions. My shot in the dark answer would be to leverage existing highly optimized tools to search large files, such as grep. See option 2) below for pseudocode
+
+WEB CONTEXT WRITE-UP
+I’ve structured my app to be easily called from a REST endpoint. The autocomplete() function, index.js:line 27, is stateless and can be called from an endpoint with the fragment and stringified source library as parameters. Since passing large and possibly duplicative library files across the web is likely to be slow and costly I would again push for preprocessing of source files into a trei to be stored globally or in persistent storage. We’d need to add an endpoint to initialize and append content to the trei. Again see option 3) below for pseudocode and references explaining treis.
+
+POSSIBLE SOLUTIONS - I considered a few
+1) Use node's process library to execute grep (). Construct the regex to search for all words containing our fragment and collate the results in a hash table including a count of occurrences
+//   let command = "grep -oh " + searchTerm + " " + filePath;
+//   execSync(command, (err, stdout) => {
+//     if (err) return console.log(err)
+//     var x = stdout.split('\n')
+//   });
+// }, [] );
+// count occurrences for each result
+// sort desc by occurrences
+// return top 25
+
+Pros:
+  Relies on tried and true grep functionality for file io.
+Cons:
+  Requires code be run on a system with GNU compatible grep installed.
+  Still be poorly performant when executed with many large files.
+
+2) Read each file with node fs and grep its contents in the application code. Construct the regex to search for all words containing our fragment and collate the results in a hash table including a count of occurrences
+Pros:
+  Cross platform compatible
+Cons:
+  Requires the entire contents of large files to be stored in memory.
+
+3) Store the contents of the file in an autocomplete trei as described in this stackoverflow answer https://stackoverflow.com/a/29313652/13703 and Implemented with this library https://github.com/amgarrett09/node-autocomplete-trie. Keep a count of the occurrences of each word as it is added to the trei for use in ordering results.
+Pros:
+  Efficient memory use and fast lookups if trei is persisted
+Cons:
+  Constructing trei is resource intensive, causing this to be a poor fit for the presented use case where a new library of words is presented with each request.
+// create hash to keep count of occurances
+// for each file / for each word
+// - sanitizeWord(word)
+// - add word to trei
+// - increment counter
+// search trei for word
+// order results desc by occurance count from hash table
+// return top 25 results
